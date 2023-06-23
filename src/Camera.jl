@@ -20,8 +20,8 @@ export serial, model, vendor, isrunning, start!, stop!, getimage, getimage!, sav
 
 _DEFERRED_RELEASE_CAMS_LOCK = ReentrantLock()
 _DEFERRED_RELEASE_CAMS = []
-_CURRENT_CAMS_LOCK = ReentrantLock()
-_CURRENT_CAMS = []
+_CURRENT_CAM_SERIALS_LOCK = ReentrantLock()
+_CURRENT_CAM_SERIALS = []
 
 """
  Spinnaker SDK Camera object
@@ -43,8 +43,8 @@ mutable struct Camera
     spinCameraInit(handle)
     names = Dict{String,String}()
     cam = new(handle, names)
-    lock(_CURRENT_CAMS_LOCK) do
-      push!(_CURRENT_CAMS, cam)
+    lock(_CURRENT_CAM_SERIALS_LOCK) do
+      push!(_CURRENT_CAM_SERIALS, serial(cam))
     end
     finalizer(maybe_release_cam, cam)
 
@@ -112,11 +112,11 @@ end
 function _release_deferred_cams()
   lock(_DEFERRED_RELEASE_CAMS_LOCK)
   try
-    if !isempty(_CURRENT_CAMS) && trylock(_CURRENT_CAMS_LOCK)
+    if !isempty(_CURRENT_CAM_SERIALS) && trylock(_CURRENT_CAM_SERIALS_LOCK)
       try
         foreach(_release!, _DEFERRED_RELEASE_CAMS)
       finally
-        unlock(_CURRENT_CAMS_LOCK)
+        unlock(_CURRENT_CAM_SERIALS_LOCK)
       end
     end
   finally
@@ -129,11 +129,11 @@ function maybe_release_cam(cam)
     GC.safepoint()
   end
   try
-    if trylock(_CURRENT_CAMS_LOCK)
+    if trylock(_CURRENT_CAM_SERIALS_LOCK)
       try
         _release!(cam)
       finally
-        unlock(_CURRENT_CAMS_LOCK)
+        unlock(_CURRENT_CAM_SERIALS_LOCK)
       end
     else
       push!(_DEFERRED_RELEASE_CAMS, cam)
@@ -147,9 +147,9 @@ end
 function _release!(cam::Camera)
   if cam.handle != C_NULL
     our_serial = serial(cam)
-    our_cam_idx = findfirst(it -> serial(it) == our_serial, _CURRENT_CAMS)
-    deleteat!(_CURRENT_CAMS, our_cam_idx)
-    another_cam_idx = findfirst(it -> serial(it) == our_serial, _CURRENT_CAMS)
+    our_cam_idx = findfirst(isequal(our_serial), _CURRENT_CAM_SERIALS)
+    deleteat!(_CURRENT_CAM_SERIALS, our_cam_idx)
+    another_cam_idx = findfirst(isequal(our_serial), _CURRENT_CAM_SERIALS)
     if another_cam_idx !== nothing
       # there is another handle to the same camera. do not release that handle because we will break the other one.
       # that camera will release itself when its the last one.

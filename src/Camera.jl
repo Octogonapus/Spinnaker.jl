@@ -110,33 +110,30 @@ end
 # Release handle to system
 function _release!(cam::Camera)
   if cam.handle != C_NULL
-    @async begin
-      println("running finalizer")
-      # if there is another handle to the same camera, do not release that handle because we will break the other one.
-      # that camera will release itself when its the last one.
-      our_serial = serial(cam)
-      lock(_CURRENT_CAMS_LOCK) do
-        for i in eachindex(_CURRENT_CAMS)
-          test_cam = _CURRENT_CAMS[i]
-          if serial(test_cam) == our_serial
-            deleteat!(_CURRENT_CAMS, i)
-            cam.handle = C_NULL
-            println("did not release cam")
-            return
-          end
+    # if there is another handle to the same camera, do not release that handle because we will break the other one.
+    # that camera will release itself when its the last one.
+    our_serial = serial(cam)
+    lock(_CURRENT_CAMS_LOCK) do
+      for i in eachindex(_CURRENT_CAMS)
+        test_cam = _CURRENT_CAMS[i]
+        if serial(test_cam) == our_serial
+          deleteat!(_CURRENT_CAMS, i)
+          cam.handle = C_NULL
+          @async println("did not release cam")
+          return
         end
       end
-
-      # we are the last camera with this handle, so release it
-      try
-        stop!(cam)
-      catch e
-      end
-      spinCameraDeInit(cam)
-      spinCameraRelease(cam)
-      cam.handle = C_NULL
-      println("released cam")
     end
+
+    # we are the last camera with this handle, so release it
+    try
+      stop!(cam)
+    catch e
+    end
+    spinCameraDeInit(cam)
+    spinCameraRelease(cam)
+    cam.handle = C_NULL
+    @async println("released cam")
   end
   return nothing
 end

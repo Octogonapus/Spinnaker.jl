@@ -18,6 +18,9 @@ export serial, model, vendor, isrunning, start!, stop!, getimage, getimage!, sav
   buffercount, buffercount!, buffermode, buffermode!, bufferunderrun, bufferfailed,
   reset!, powersupplyvoltage
 
+_CURRENT_CAMS_LOCK = ReentrantLock()
+_CURRENT_CAMS = []
+
 """
  Spinnaker SDK Camera object
 
@@ -38,6 +41,9 @@ mutable struct Camera
     spinCameraInit(handle)
     names = Dict{String,String}()
     cam = new(handle, names)
+    lock(_CURRENT_CAMS_LOCK) do
+      push!(_CURRENT_CAMS, cam)
+    end
     finalizer(_release!, cam)
 
     # Activate chunk mode
@@ -103,15 +109,33 @@ end
 
 # Release handle to system
 function _release!(cam::Camera)
-  if cam.handle != C_NULL
-    try
-      stop!(cam)
-    catch e
+  @async begin
+    if cam.handle != C_NULL
+      # if there is another handle to the same camera, do not release that handle because we will break the other one.
+      # that camera will release itself when its the last one.
+      lock(_CURRENT_CAMS_LOCK) do
+        our_serial = serial(cam)
+        for i in eachindex(_CURRENT_CAMS)
+          test_cam = _CURRENT_CAMS[i]
+          if serial(test_cam) == our_serial
+            deleteat!(_CURRENT_CAMS, i)
+            cam.handle = C_NULL
+            println("did not release cam")
+            return
+          end
+        end
+      end
+
+      # we are the last camera with this handle, so release it
+      try
+        stop!(cam)
+      catch e
+      end
+      spinCameraDeInit(cam)
+      spinCameraRelease(cam)
+      cam.handle = C_NULL
+      println("released cam")
     end
-    spinCameraDeInit(cam)
-    spinCameraRelease(cam)
-    cam.handle = C_NULL
-    @async println("released cam")
   end
   return nothing
 end

@@ -154,6 +154,7 @@ function _release!(cam::Camera)
       # there is another handle to the same camera. do not release that handle because we will break the other one.
       # that camera will release itself when its the last one.
       # TODO should we still spinCameraRelease(cam)?
+      spinCameraRelease(cam)
       cam.handle = C_NULL
       println("did not release cam")
     else

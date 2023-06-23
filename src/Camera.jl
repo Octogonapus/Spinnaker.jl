@@ -18,7 +18,9 @@ export serial, model, vendor, isrunning, start!, stop!, getimage, getimage!, sav
   buffercount, buffercount!, buffermode, buffermode!, bufferunderrun, bufferfailed,
   reset!, powersupplyvoltage
 
-_CURRENT_CAMS_LOCK = Threads.SpinLock()
+_DEFERRED_RELEASE_CAMS_LOCK = ReentrantLock()
+_DEFERRED_RELEASE_CAMS = []
+_CURRENT_CAMS_LOCK = ReentrantLock()
 _CURRENT_CAMS = []
 
 """
@@ -107,31 +109,63 @@ function _reinit(cam::Camera)
   return cam
 end
 
+function _release_deferred_cams()
+  lock(_DEFERRED_RELEASE_CAMS_LOCK)
+  try
+    if !isempty(_CURRENT_CAMS) && trylock(_CURRENT_CAMS_LOCK)
+      try
+        foreach(_release!, _DEFERRED_RELEASE_CAMS)
+      finally
+        unlock(_CURRENT_CAMS_LOCK)
+      end
+    end
+  finally
+    unlock(_DEFERRED_RELEASE_CAMS_LOCK)
+  end
+end
+
+function maybe_release_cam(cam)
+  while !trylock(_DEFERRED_RELEASE_CAMS_LOCK)
+    GC.safepoint()
+  end
+  try
+    if trylock(_CURRENT_CAMS_LOCK)
+      try
+        _release!(cam)
+      finally
+        unlock(_CURRENT_CAMS_LOCK)
+      end
+    else
+      push!(_DEFERRED_RELEASE_CAMS, cam)
+    end
+  finally
+    unlock(_DEFERRED_RELEASE_CAMS_LOCK)
+  end
+end
+
 # Release handle to system
 function _release!(cam::Camera)
   if cam.handle != C_NULL
     our_serial = serial(cam)
-    lock(_CURRENT_CAMS_LOCK) do
-      our_cam_idx = findfirst(it -> serial(it) == our_serial, _CURRENT_CAMS)
-      deleteat!(_CURRENT_CAMS, our_cam_idx)
-      another_cam_idx = findfirst(it -> serial(it) == our_serial, _CURRENT_CAMS)
-      if another_cam_idx !== nothing
-        # there is another handle to the same camera. do not release that handle because we will break the other one.
-        # that camera will release itself when its the last one.
-        # TODO should we still spinCameraRelease(cam)?
-        cam.handle = C_NULL
-        @async println("did not release cam")
-      else
-        # we are the last camera with this handle, so release it
-        try
-          stop!(cam)
-        catch e
-        end
-        spinCameraDeInit(cam)
-        spinCameraRelease(cam)
-        cam.handle = C_NULL
-        @async println("released cam")
+    our_cam_idx = findfirst(it -> serial(it) == our_serial, _CURRENT_CAMS)
+    deleteat!(_CURRENT_CAMS, our_cam_idx)
+    another_cam_idx = findfirst(it -> serial(it) == our_serial, _CURRENT_CAMS)
+    if another_cam_idx !== nothing
+      # there is another handle to the same camera. do not release that handle because we will break the other one.
+      # that camera will release itself when its the last one.
+      # TODO should we still spinCameraRelease(cam)?
+      cam.handle = C_NULL
+      println("did not release cam")
+    else
+      # we are the last camera with this handle, so release it
+      try
+        stop!(cam)
+      catch e
       end
+      spinCameraDeInit(cam)
+      spinCameraRelease(cam)
+      cam.handle = C_NULL
+      println("released cam")
     end
   end
   return nothing

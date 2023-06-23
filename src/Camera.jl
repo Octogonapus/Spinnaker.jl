@@ -43,6 +43,7 @@ mutable struct Camera
     spinCameraInit(handle)
     names = Dict{String,String}()
     cam = new(handle, names)
+    _release_deferred_cams()
     lock(_CURRENT_CAM_SERIALS_LOCK) do
       push!(_CURRENT_CAM_SERIALS, serial(cam))
     end

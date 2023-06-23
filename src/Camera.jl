@@ -18,7 +18,7 @@ export serial, model, vendor, isrunning, start!, stop!, getimage, getimage!, sav
   buffercount, buffercount!, buffermode, buffermode!, bufferunderrun, bufferfailed,
   reset!, powersupplyvoltage
 
-_CURRENT_CAMS_LOCK = ReentrantLock()
+_CURRENT_CAMS_LOCK = Threads.SpinLock()
 _CURRENT_CAMS = []
 
 """

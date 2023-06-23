@@ -112,10 +112,9 @@ function _release!(cam::Camera)
   if cam.handle != C_NULL
     our_serial = serial(cam)
     lock(_CURRENT_CAMS_LOCK) do
-      all_serials = [serial(it) for it in _CURRENT_CAMS]
-      our_cam_idx = findfirst(isequal(our_serial), all_serials)
+      our_cam_idx = findfirst(it -> serial(it) == our_serial, _CURRENT_CAMS)
       deleteat!(_CURRENT_CAMS, our_cam_idx)
-      another_cam_idx = findfirst(isequal(our_serial), all_serials)
+      another_cam_idx = findfirst(it -> serial(it) == our_serial, _CURRENT_CAMS)
       if another_cam_idx !== nothing
         # there is another handle to the same camera. do not release that handle because we will break the other one.
         # that camera will release itself when its the last one.

@@ -3,20 +3,20 @@
 
 # Camera.jl: interface to Camera objects
 export serial, model, vendor, isrunning, start!, stop!, getimage, getimage!, saveimage,
-       triggermode, triggermode!,
-       triggersource, triggersource!,
-       trigger!,
-       exposure, exposure!, exposure_limits,
-       autoexposure_limits, autoexposure_limits!,
-       framerate, framerate!, framerate_limits,
-       gain, gain!, gain_limits,
-       adcbits, adcbits!,
-       gammaenable!,
-       pixelformat, pixelformat!,
-       acquisitionmode, acquisitionmode!,
-       sensordims, imagedims, imagedims!, imagedims_limits, offsetdims, offsetdims!, offsetdims_limits,
-       buffercount, buffercount!, buffermode, buffermode!, bufferunderrun, bufferfailed,
-       reset!, powersupplyvoltage
+  triggermode, triggermode!,
+  triggersource, triggersource!,
+  trigger!,
+  exposure, exposure!, exposure_limits,
+  autoexposure_limits, autoexposure_limits!,
+  framerate, framerate!, framerate_limits,
+  gain, gain!, gain_limits,
+  adcbits, adcbits!,
+  gammaenable!,
+  pixelformat, pixelformat!,
+  acquisitionmode, acquisitionmode!,
+  sensordims, imagedims, imagedims!, imagedims_limits, offsetdims, offsetdims!, offsetdims_limits,
+  buffercount, buffercount!, buffermode, buffermode!, bufferunderrun, bufferfailed,
+  reset!, powersupplyvoltage
 
 """
  Spinnaker SDK Camera object
@@ -29,14 +29,14 @@ export serial, model, vendor, isrunning, start!, stop!, getimage, getimage!, sav
 """
 mutable struct Camera
   handle::spinCamera
-  names::Dict{String, String}
+  names::Dict{String,String}
 
   function Camera(handle)
     @assert spinsys.handle != C_NULL
     @assert handle != C_NULL
     spinCameraDeInit(handle)
     spinCameraInit(handle)
-    names = Dict{String, String}()
+    names = Dict{String,String}()
     cam = new(handle, names)
     finalizer(_release!, cam)
 
@@ -111,6 +111,7 @@ function _release!(cam::Camera)
     spinCameraDeInit(cam)
     spinCameraRelease(cam)
     cam.handle = C_NULL
+    @async println("released cam")
   end
   return nothing
 end
@@ -133,7 +134,7 @@ Immediately reset and reboot the camera, after which the camera will need re-ini
 Or to automatically wait to reconnect to a camera with the same serial number set `wait` to `true`, and a maximum
 timeout in seconds via `timeout`.
 """
-function reset!(cam::Camera; wait::Bool = false, timeout::Union{Int,Nothing} = nothing)
+function reset!(cam::Camera; wait::Bool=false, timeout::Union{Int,Nothing}=nothing)
   # get these before resetting
   timeout_secs = if wait
     isnothing(timeout) ? get(SpinIntegerNode(cam, "MaxDeviceResetTime")) / 1e3 : timeout
@@ -144,7 +145,7 @@ function reset!(cam::Camera; wait::Bool = false, timeout::Union{Int,Nothing} = n
   spinCameraGetNodeMap(cam, hNodeMap)
 
   hDeviceReset = Ref(spinNodeHandle(C_NULL))
-  spinNodeMapGetNode(hNodeMap[], "DeviceReset", hDeviceReset);
+  spinNodeMapGetNode(hNodeMap[], "DeviceReset", hDeviceReset)
   spinCommandExecute(hDeviceReset[])
 
   if wait
@@ -249,7 +250,7 @@ acquisitionmode!(cam::Camera, mode) = set!(SpinEnumNode(cam, "AcquisitionMode"),
 
 function _isimagecomplete(himage_ref)
   isIncomplete = Ref(bool8_t(false))
-  spinImageIsIncomplete(himage_ref[], isIncomplete);
+  spinImageIsIncomplete(himage_ref[], isIncomplete)
   if isIncomplete == true
     imageStatus = Ref(spinImageStatus(IMAGE_NO_ERROR))
     spinImageGetStatus(himage_ref[], imageStatus)
@@ -285,9 +286,9 @@ function getimage!(cam::Camera, image::SpinImage; release=true, timeout=-1)
   # Get image handle and check it's complete
   himage_ref = Ref(spinImage(C_NULL))
   if timeout == -1
-    spinCameraGetNextImage(cam, himage_ref);
+    spinCameraGetNextImage(cam, himage_ref)
   else
-    spinCameraGetNextImageEx(cam, timeout, himage_ref);
+    spinCameraGetNextImageEx(cam, timeout, himage_ref)
   end
   @assert _isimagecomplete(himage_ref)
 
@@ -323,10 +324,10 @@ end
 
   Function also returns image ID and timestamp metadata.
 """
-function getimage(cam::Camera, ::Type{T}; normalize=true, release=true, timeout=-1) where T
+function getimage(cam::Camera, ::Type{T}; normalize=true, release=true, timeout=-1) where {T}
 
   himage_ref, width, height, id, timestamp, exposure = _pullim(cam, timeout=timeout)
-  imdat = Array{T,2}(undef, (width,height))
+  imdat = Array{T,2}(undef, (width, height))
   camim = CameraImage(imdat, id, timestamp, exposure)
   _copyimage!(himage_ref[], width, height, camim, normalize)
   if release
@@ -353,7 +354,7 @@ end
   To return images compatible with Images.jl, one can request a Gray value, e.g.,
   `getimage!(cam, Gray{N0f8}, normalize=true)`.
 """
-function getimage!(cam::Camera, image::CameraImage{T,2}; normalize=true, release=true, timeout=-1) where T
+function getimage!(cam::Camera, image::CameraImage{T,2}; normalize=true, release=true, timeout=-1) where {T}
 
   himage_ref, width, height, id, timestamp, exposure = _pullim(cam, timeout=timeout)
   camim = CameraImage(image.data, id, timestamp, exposure)
@@ -365,14 +366,14 @@ function getimage!(cam::Camera, image::CameraImage{T,2}; normalize=true, release
 
 end
 
-function _pullim(cam::Camera;timeout=-1)
+function _pullim(cam::Camera; timeout=-1)
 
   # Get image handle and check it's complete
   himage_ref = Ref(spinImage(C_NULL))
   if timeout == -1
-    spinCameraGetNextImage(cam, himage_ref);
+    spinCameraGetNextImage(cam, himage_ref)
   else
-    spinCameraGetNextImageEx(cam, timeout, himage_ref);
+    spinCameraGetNextImageEx(cam, timeout, himage_ref)
   end
   if !_isimagecomplete(himage_ref)
     spinImageRelease(himage_ref[])
@@ -387,8 +388,8 @@ function _pullim(cam::Camera;timeout=-1)
   exposure = Ref(Float64(0))
   spinImageGetWidth(himage_ref[], width)
   spinImageGetHeight(himage_ref[], height)
-  spinImageChunkDataGetIntValue(himage_ref[], "ChunkFrameID", id);
-  spinImageChunkDataGetFloatValue(himage_ref[], "ChunkExposureTime", exposure);
+  spinImageChunkDataGetIntValue(himage_ref[], "ChunkFrameID", id)
+  spinImageChunkDataGetFloatValue(himage_ref[], "ChunkExposureTime", exposure)
   spinImageChunkDataGetIntValue(himage_ref[], "ChunkTimestamp", timestamp)
   return himage_ref, Int(width[]), Int(height[]), id[], timestamp[], exposure[]
 
@@ -412,7 +413,7 @@ end
   precision numbers in the range [0, 255]. `If normalize == true` the input data is interpreted as
   an associated fixed point format, and thus the array will be in the range [0,1].
 """
-function getimage!(cam::Camera, image::AbstractArray{T,2}; normalize=true, release=true, timeout=-1) where T
+function getimage!(cam::Camera, image::AbstractArray{T,2}; normalize=true, release=true, timeout=-1) where {T}
 
   himage_ref, width, height, id, timestamp, exposure = _pullim(cam, timeout=timeout)
   _copyimage!(himage_ref[], width, height, image, normalize)
@@ -436,17 +437,17 @@ end
 """
 function saveimage(cam::Camera, fn::AbstractString, fmt::spinImageFileFormat; release=true, timeout=-1)
 
-    # Get image handle and check it's complete
-    himage_ref = Ref(spinImage(C_NULL))
-    if timeout == -1
-      spinCameraGetNextImage(cam, himage_ref);
-    else
-      spinCameraGetNextImageEx(cam, timeout, himage_ref);
-    end
-    @assert _isimagecomplete(himage_ref)
-    spinImageSave(himage_ref[], fn, fmt)
-    if release
-      spinImageRelease(himage_ref[])
-    end
+  # Get image handle and check it's complete
+  himage_ref = Ref(spinImage(C_NULL))
+  if timeout == -1
+    spinCameraGetNextImage(cam, himage_ref)
+  else
+    spinCameraGetNextImageEx(cam, timeout, himage_ref)
+  end
+  @assert _isimagecomplete(himage_ref)
+  spinImageSave(himage_ref[], fn, fmt)
+  if release
+    spinImageRelease(himage_ref[])
+  end
 
 end

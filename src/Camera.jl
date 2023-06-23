@@ -154,8 +154,8 @@ function _release!(cam::Camera)
     if another_cam_idx !== nothing
       # there is another handle to the same camera. do not release that handle because we will break the other one.
       # that camera will release itself when its the last one.
-      spinCameraDeInit(cam)
-      spinCameraRelease(cam)
+      # spinCameraDeInit(cam)
+      # spinCameraRelease(cam)
       cam.handle = C_NULL
     else
       # we are the last camera with this handle, so release it

@@ -46,7 +46,7 @@ mutable struct Camera
     lock(_CURRENT_CAMS_LOCK) do
       push!(_CURRENT_CAMS, cam)
     end
-    finalizer(_release!, cam)
+    finalizer(maybe_release_cam, cam)
 
     # Activate chunk mode
     set!(SpinBooleanNode(cam, "ChunkModeActive"), true)

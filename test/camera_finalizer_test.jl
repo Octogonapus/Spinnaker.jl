@@ -8,7 +8,7 @@
         end
         stop[] = true
     end
-    t1 = @async begin
+    t1 = Threads.@spawn begin
         while !stop[]
             camlist = CameraList()
             cam = camlist[0]
@@ -33,7 +33,7 @@
             yield()
         end
     end
-    t2 = @async begin
+    t2 = Threads.@spawn begin
         while !stop[]
             camlist = CameraList()
             cam = camlist[0]

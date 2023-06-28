@@ -9,14 +9,14 @@
         stop[] = true
     end
     t1 = @async begin
-        while true
+        while !stop[]
             camlist = CameraList()
             cam = camlist[0]
             start!(cam)
             try
                 sleep(0.01)
                 framerate!(cam, 55.0)
-                @show powersupplyvoltage(cam)
+                @show Threads.threadid() powersupplyvoltage(cam)
                 gain_lims = gain_limits(cam)
                 @async gain!(cam, rand(gain_lims[1]:gain_lims[2]))
                 getimage(cam)
@@ -34,14 +34,14 @@
         end
     end
     t2 = @async begin
-        while true
+        while !stop[]
             camlist = CameraList()
             cam = camlist[0]
             start!(cam)
             try
                 sleep(0.01)
                 framerate!(cam, 55.0)
-                @show powersupplyvoltage(cam)
+                @show Threads.threadid() powersupplyvoltage(cam)
                 gain_lims = gain_limits(cam)
                 @async gain!(cam, rand(gain_lims[1]:gain_lims[2]))
                 getimage(cam)

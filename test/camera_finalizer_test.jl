@@ -10,9 +10,6 @@
     end
     t1 = @async begin
         while true
-            if stop[]
-                error("Stopped")
-            end
             camlist = CameraList()
             cam = camlist[0]
             start!(cam)
@@ -24,6 +21,12 @@
                 @async gain!(cam, rand(gain_lims[1]:gain_lims[2]))
                 getimage(cam)
                 sleep(0.01)
+            catch ex
+                if ex isa SpinError && ex.val == -1004
+                    # can ignore this since we are using the camera concurrently
+                else
+                    rethrow()
+                end
             finally
                 stop!(cam)
             end
@@ -32,9 +35,6 @@
     end
     t2 = @async begin
         while true
-            if stop[]
-                error("Stopped")
-            end
             camlist = CameraList()
             cam = camlist[0]
             start!(cam)
@@ -46,20 +46,18 @@
                 @async gain!(cam, rand(gain_lims[1]:gain_lims[2]))
                 getimage(cam)
                 sleep(0.01)
+            catch ex
+                if ex isa SpinError && ex.val == -1004
+                    # can ignore this since we are using the camera concurrently
+                else
+                    rethrow()
+                end
             finally
                 stop!(cam)
             end
             yield()
         end
     end
-    try
-        fetch(t1)
-    catch ex
-        @test ex.msg == "Stopped"
-    end
-    try
-        fetch(t2)
-    catch ex
-        @test ex.msg == "Stopped"
-    end
+    fetch(t1)
+    fetch(t2)
 end

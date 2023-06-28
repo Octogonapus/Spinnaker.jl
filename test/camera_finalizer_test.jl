@@ -52,6 +52,14 @@
             yield()
         end
     end
-    fetch(t1)
-    fetch(t2)
+    try
+        fetch(t1)
+    catch ex
+        @test ex.msg == "Stopped"
+    end
+    try
+        fetch(t2)
+    catch ex
+        @test ex.msg == "Stopped"
+    end
 end

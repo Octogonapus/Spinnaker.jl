@@ -16,6 +16,7 @@
             try
                 sleep(0.01)
                 framerate!(cam, 55.0)
+                @show powersupplyvoltage(cam)
                 gain_lims = gain_limits(cam)
                 @async gain!(cam, rand(gain_lims[1]:gain_lims[2]))
                 getimage(cam)
@@ -34,6 +35,7 @@
             try
                 sleep(0.01)
                 framerate!(cam, 55.0)
+                @show powersupplyvoltage(cam)
                 gain_lims = gain_limits(cam)
                 @async gain!(cam, rand(gain_lims[1]:gain_lims[2]))
                 getimage(cam)

@@ -9,7 +9,7 @@
         stop[] = true
     end
     t1 = @async begin
-        while !stop[]
+        while true
             camlist = CameraList()
             cam = camlist[0]
             start!(cam)
@@ -28,7 +28,10 @@
         end
     end
     t2 = @async begin
-        while !stop[]
+        while true
+            if stop[]
+                error("Stopped")
+            end
             camlist = CameraList()
             cam = camlist[0]
             start!(cam)

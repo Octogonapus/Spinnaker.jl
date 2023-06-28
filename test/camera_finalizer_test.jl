@@ -10,6 +10,9 @@
     end
     t1 = @async begin
         while true
+            if stop[]
+                error("Stopped")
+            end
             camlist = CameraList()
             cam = camlist[0]
             start!(cam)

@@ -16,13 +16,13 @@
             try
                 sleep(0.01)
                 framerate!(cam, 55.0)
-                @show Threads.threadid() powersupplyvoltage(cam)
+                println("task 1, psu voltage: $(powersupplyvoltage(cam))")
                 gain_lims = gain_limits(cam)
                 @async gain!(cam, rand(gain_lims[1]:gain_lims[2]))
                 getimage(cam)
                 sleep(0.01)
             catch ex
-                if ex isa SpinError && ex.val == -1004
+                if ex isa SpinError && ex.val == Spinnaker.SPINNAKER_ERR_RESOURCE_IN_USE
                     # can ignore this since we are using the camera concurrently
                 else
                     rethrow()
@@ -41,13 +41,13 @@
             try
                 sleep(0.01)
                 framerate!(cam, 55.0)
-                @show Threads.threadid() powersupplyvoltage(cam)
+                println("task 2, psu voltage: $(powersupplyvoltage(cam))")
                 gain_lims = gain_limits(cam)
                 @async gain!(cam, rand(gain_lims[1]:gain_lims[2]))
                 getimage(cam)
                 sleep(0.01)
             catch ex
-                if ex isa SpinError && ex.val == -1004
+                if ex isa SpinError && ex.val == Spinnaker.SPINNAKER_ERR_RESOURCE_IN_USE
                     # can ignore this since we are using the camera concurrently
                 else
                     rethrow()

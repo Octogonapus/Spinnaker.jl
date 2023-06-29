@@ -27,13 +27,13 @@ end
 showerror(io::IO, ex::SpinError) = print(io, "Spinnaker SDK error: ", ex.val)
 
 function print_last_error_details()
-  pError = Ref(spinError(0))
-  spinErrorGetLast(pError)
-  println("spinErrorGetLast=$(pError[])")
-
   pBuf = Vector{UInt8}(undef, 100)
   spinErrorGetLastMessage(pBuf, length(pBuf))
   println("spinErrorGetLastMessage=$(String(pBuf))")
+
+  pError = Ref(spinError(0))
+  spinErrorGetLast(pError)
+  println("spinErrorGetLast=$(pError[])")
 
   pBuf = Vector{UInt8}(undef, 100)
   spinErrorGetLastFullMessage(pBuf, length(pBuf))

@@ -71,7 +71,9 @@ end
 
 function _do_release!(sys::System)
   if sys.handle != C_NULL
-    spinSystemReleaseInstance(sys)
+    err = ccall((:spinSystemReleaseInstance, libSpinnaker_C[]), spinError, (spinSystem,), sys)
+    print_last_error_details()
+    checkerror(err)
     sys.handle = C_NULL
   end
   return nothing

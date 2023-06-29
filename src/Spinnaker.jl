@@ -27,7 +27,7 @@ end
 showerror(io::IO, ex::SpinError) = print(io, "Spinnaker SDK error: ", ex.val)
 
 function print_last_error_details()
-  pBuf = Vector{UInt8}(undef, 100)
+  pBuf = Vector{Cchar}(undef, 100)
   spinErrorGetLastMessage(pBuf, length(pBuf))
   println("spinErrorGetLastMessage=$(String(pBuf))")
 
@@ -35,7 +35,7 @@ function print_last_error_details()
   spinErrorGetLast(pError)
   println("spinErrorGetLast=$(pError[])")
 
-  pBuf = Vector{UInt8}(undef, 100)
+  pBuf = Vector{Cchar}(undef, 100)
   spinErrorGetLastFullMessage(pBuf, length(pBuf))
   println("spinErrorGetLastFullMessage=$(String(pBuf))")
 end
@@ -67,13 +67,13 @@ include("NodeMap.jl")
 include("Nodes.jl")
 
 get_bool_env(name::String; default::String="false") =
-    lowercase(Base.get(ENV, name, default)) in ("t", "true", "y", "yes", "1")
+  lowercase(Base.get(ENV, name, default)) in ("t", "true", "y", "yes", "1")
 
 function __init__()
   # Given Spinnaker is a non-JLL managed dependency, it is sometimes helpful to delay the lib init
   # so that julia has preference over which libraries are loaded.
   # i.e. set this env var and load julia packages before calling Spinnaker.init()
-  if !get_bool_env("JULIA_SPINNAKER_MANUAL_INIT", default = "false")
+  if !get_bool_env("JULIA_SPINNAKER_MANUAL_INIT", default="false")
     init()
   end
 end

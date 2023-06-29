@@ -24,10 +24,56 @@ end
 unsafe_convert(::Type{spinSystem}, sys::System) = sys.handle
 unsafe_convert(::Type{Ptr{spinSystem}}, sys::System) = pointer_from_objref(sys)
 
+_DEFERRED_SYSTEM_LOCK = ReentrantLock()
+_DEFERRED_SYSTEM = Ref{Union{System,Nothing}}()
+
+function _maybe_release_system()
+  while !trylock(_DEFERRED_SYSTEM_LOCK)
+    GC.safepoint()
+  end
+  try
+    if _DEFERRED_SYSTEM[].handle != C_NULL
+      _release!(_DEFERRED_SYSTEM[])
+    end
+  finally
+    unlock(_DEFERRED_SYSTEM_LOCK)
+  end
+  return nothing
+end
+
 # Release handle to system
 function _release!(sys::System)
-  spinSystemReleaseInstance(sys)
-  sys.handle = C_NULL
+  if sys.handle == C_NULL
+    return nothing
+  end
+
+  while !trylock(_CURRENT_CAM_SERIALS_LOCK)
+    GC.safepoint()
+  end
+  try
+    if !isempty(_CURRENT_CAM_SERIALS)
+      while !trylock(_DEFERRED_SYSTEM_LOCK)
+        GC.safepoint()
+      end
+      try
+        _DEFERRED_SYSTEM[] = sys
+      finally
+        unlock(_DEFERRED_SYSTEM_LOCK)
+      end
+    else
+      _do_release!(sys)
+    end
+  finally
+    unlock(_CURRENT_CAM_SERIALS_LOCK)
+  end
+  return nothing
+end
+
+function _do_release!(sys::System)
+  if sys.handle != C_NULL
+    spinSystemReleaseInstance(sys)
+    sys.handle = C_NULL
+  end
   return nothing
 end
 
@@ -38,7 +84,7 @@ end
   and seperate build number.
 """
 function version(sys::System)
-  hlibver_ref = Ref(spinLibraryVersion(0,0,0,0))
+  hlibver_ref = Ref(spinLibraryVersion(0, 0, 0, 0))
   spinSystemGetLibraryVersion(sys, hlibver_ref)
   libver = VersionNumber(hlibver_ref[].major, hlibver_ref[].minor, hlibver_ref[].type)
   return libver, hlibver_ref[].build

@@ -127,6 +127,7 @@ function _maybe_release_cam(cam)
   finally
     unlock(_CURRENT_CAM_SERIALS_LOCK)
   end
+  _maybe_release_system()
 end
 
 # Release handle to system

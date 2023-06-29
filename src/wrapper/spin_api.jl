@@ -66,7 +66,7 @@ function spinErrorGetLast(pError)
 end
 
 function spinErrorGetLastMessage(pBuf, pBufLen)
-    checkerror(ccall((:spinErrorGetLastMessage, libSpinnaker_C[]), spinError, (Cstring, Ptr{Csize_t}), pBuf, pBufLen))
+    checkerror(ccall((:spinErrorGetLastMessage, libSpinnaker_C[]), spinError, (Ptr{UInt8}, Ptr{Csize_t}), pBuf, pBufLen))
 end
 
 function spinErrorGetLastBuildDate(pBuf, pBufLen)

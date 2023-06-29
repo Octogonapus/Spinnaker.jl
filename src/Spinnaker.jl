@@ -46,8 +46,8 @@ end
 
 function checkerror(err::spinError)
   if err != spinError(0)
-    println("checkerror($err)")
-    print_last_error_details()
+    # println("checkerror($err)")
+    # print_last_error_details()
     throw(SpinError(err))
   end
   return nothing

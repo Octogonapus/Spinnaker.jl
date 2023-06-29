@@ -27,19 +27,21 @@ end
 showerror(io::IO, ex::SpinError) = print(io, "Spinnaker SDK error: ", ex.val)
 
 function print_last_error_details()
-  pBuf = Ref(Vector{UInt8}(undef, 100))
-  pBufLen = Ref(UInt64(length(pBuf[])))
+  pBuf = Ref("                                                                                                          ")
+  pBufLen = Ref(UInt64(length(pBuf)))
   spinErrorGetLastMessage(pBuf, pBufLen)
-  println("spinErrorGetLastMessage=$((pBuf[][begin:begin+pBufLen[]]))")
+  pBuf[] = pBuf[][begin:begin+pBufLen[]]
+  println("spinErrorGetLastMessage=$((pBuf[]))")
 
   pError = Ref(spinError(0))
   spinErrorGetLast(pError)
   println("spinErrorGetLast=$(pError[])")
 
-  pBuf = Ref(Vector{UInt8}(undef, 100))
-  pBufLen = Ref(UInt64(length(pBuf[])))
-  spinErrorGetLastFullMessage(pBuf, pBufLen)
-  println("spinErrorGetLastFullMessage=$((pBuf[][begin:begin+pBufLen[]]))")
+  # pBuf = Ref("                                                                                                          ")
+  # pBufLen = Ref(UInt64(length(pBuf)))
+  # spinErrorGetLastFullMessage(pBuf, pBufLen)
+  # pBuf = pBuf[begin:begin+pBufLen[]]
+  # println("spinErrorGetLastFullMessage=$((pBuf))")
 end
 
 function checkerror(err::spinError)

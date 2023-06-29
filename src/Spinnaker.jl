@@ -30,6 +30,7 @@ function print_last_error_details()
   pBuf = "                                                                                                          "
   pBufLen = Ref(UInt64(length(pBuf)))
   spinErrorGetLastMessage(pBuf, pBufLen)
+  pBuf = pBuf[begin:begin+pBufLen[]]
   println("spinErrorGetLastMessage=$((pBuf))")
 
   pError = Ref(spinError(0))
@@ -39,6 +40,7 @@ function print_last_error_details()
   pBuf = "                                                                                                          "
   pBufLen = Ref(UInt64(length(pBuf)))
   spinErrorGetLastFullMessage(pBuf, pBufLen)
+  pBuf = pBuf[begin:begin+pBufLen[]]
   println("spinErrorGetLastFullMessage=$((pBuf))")
 end
 

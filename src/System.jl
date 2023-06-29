@@ -25,7 +25,7 @@ unsafe_convert(::Type{spinSystem}, sys::System) = sys.handle
 unsafe_convert(::Type{Ptr{spinSystem}}, sys::System) = pointer_from_objref(sys)
 
 _DEFERRED_SYSTEM_LOCK = ReentrantLock()
-_DEFERRED_SYSTEM = Ref{Union{System,Nothing}}()
+_DEFERRED_SYSTEM = Ref{Union{System,Nothing}}(nothing)
 
 function _maybe_release_system()
   while !trylock(_DEFERRED_SYSTEM_LOCK)

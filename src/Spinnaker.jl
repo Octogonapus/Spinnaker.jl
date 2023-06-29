@@ -42,7 +42,7 @@ end
 
 function checkerror(err::spinError)
   if err != spinError(0)
-    @async print_last_error_details()
+    print_last_error_details()
     throw(SpinError(err))
   end
   return nothing

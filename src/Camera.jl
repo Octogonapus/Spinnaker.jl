@@ -21,7 +21,20 @@ export serial, model, vendor, isrunning, start!, stop!, getimage, getimage!, sav
 _DEFERRED_RELEASE_CAMS_LOCK = ReentrantLock()
 _DEFERRED_RELEASE_CAMS = []
 _CURRENT_CAM_SERIALS_LOCK = ReentrantLock()
-_CURRENT_CAM_SERIALS = []
+_CURRENT_CAM_SERIALS = Dict{String,Int}()
+
+function _inc_cam_serial(serial)
+  if haskey(_CURRENT_CAM_SERIALS, serial)
+    _CURRENT_CAM_SERIALS[serial] += 1
+  else
+    _CURRENT_CAM_SERIALS[serial] = 1
+  end
+  return nothing
+end
+
+function _dec_cam_serial(serial)
+  return _CURRENT_CAM_SERIALS[serial] -= 1
+end
 
 """
  Spinnaker SDK Camera object
@@ -44,7 +57,7 @@ mutable struct Camera
     names = Dict{String,String}()
     cam = new(handle, names)
     lock(_CURRENT_CAM_SERIALS_LOCK) do
-      push!(_CURRENT_CAM_SERIALS, serial(cam))
+      _inc_cam_serial(serial(cam))
     end
     finalizer(_maybe_release_cam, cam)
 
@@ -133,22 +146,18 @@ end
 # Release handle to system
 function _release!(cam::Camera)
   if cam.handle != C_NULL
-    our_serial = serial(cam)
-    our_cam_idx = findfirst(isequal(our_serial), _CURRENT_CAM_SERIALS)
-    deleteat!(_CURRENT_CAM_SERIALS, our_cam_idx)
-    another_cam_idx = findfirst(isequal(our_serial), _CURRENT_CAM_SERIALS)
-    if another_cam_idx !== nothing
-      # there is another handle to the same camera. do not release that handle because we will break the other one.
-      # that camera will release itself when its the last one.
-      spinCameraRelease(cam)
-      cam.handle = C_NULL
-    else
+    if _dec_cam_serial(serial(cam)) == 0
       # we are the last camera with this handle, so release it
       try
         stop!(cam)
       catch e
       end
       spinCameraDeInit(cam)
+      spinCameraRelease(cam)
+      cam.handle = C_NULL
+    else
+      # there is another handle to the same camera. do not release that handle because we will break the other one.
+      # that camera will release itself when its the last one.
       spinCameraRelease(cam)
       cam.handle = C_NULL
     end

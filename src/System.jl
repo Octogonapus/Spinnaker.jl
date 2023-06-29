@@ -32,7 +32,7 @@ function _maybe_release_system()
     GC.safepoint()
   end
   try
-    if _DEFERRED_SYSTEM[] !== nothing && _DEFERRED_SYSTEM[].handle != C_NULL
+    if _DEFERRED_SYSTEM[] !== nothing
       _release!(_DEFERRED_SYSTEM[])
     end
   finally
@@ -51,7 +51,7 @@ function _release!(sys::System)
     GC.safepoint()
   end
   try
-    if !isempty(_CURRENT_CAM_SERIALS)
+    if any(!(iszero), values(_CURRENT_CAM_SERIALS))
       while !trylock(_DEFERRED_SYSTEM_LOCK)
         GC.safepoint()
       end

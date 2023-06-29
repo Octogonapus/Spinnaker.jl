@@ -37,15 +37,16 @@ function print_last_error_details()
   spinErrorGetLast(pError)
   println("spinErrorGetLast=$(pError[])")
 
-  # pBuf = "                                                                                                          "
-  # pBufLen = Ref(UInt64(length(pBuf)))
-  # spinErrorGetLastFullMessage(pBuf, pBufLen)
-  # pBuf = pBuf[begin:begin+pBufLen[]]
-  # println("spinErrorGetLastFullMessage=$((pBuf))")
+  pBuf = "                                                                                                          "
+  pBufLen = Ref(UInt64(length(pBuf)))
+  spinErrorGetLastFullMessage(pBuf, pBufLen)
+  pBuf = pBuf[begin:begin+pBufLen[]]
+  println("spinErrorGetLastFullMessage=$((pBuf))")
 end
 
 function checkerror(err::spinError)
   if err != spinError(0)
+    println("checkerror($err)")
     print_last_error_details()
     throw(SpinError(err))
   end

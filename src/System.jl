@@ -32,7 +32,7 @@ function _maybe_release_system()
     GC.safepoint()
   end
   try
-    if _DEFERRED_SYSTEM[].handle != C_NULL
+    if _DEFERRED_SYSTEM[] !== nothing && _DEFERRED_SYSTEM[].handle != C_NULL
       _release!(_DEFERRED_SYSTEM[])
     end
   finally

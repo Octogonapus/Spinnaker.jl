@@ -73,6 +73,7 @@ function _do_release!(sys::System)
   if sys.handle != C_NULL
     err = ccall((:spinSystemReleaseInstance, libSpinnaker_C[]), spinError, (spinSystem,), sys)
     print_last_error_details()
+    @show _CURRENT_CAM_SERIALS _DEFERRED_SYSTEM
     checkerror(err)
     sys.handle = C_NULL
   end

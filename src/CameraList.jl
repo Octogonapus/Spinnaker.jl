@@ -51,6 +51,7 @@ function _release!(camlist::CameraList)
     spinCameraListDestroy(camlist)
     camlist.handle = C_NULL
   end
+  _maybe_release_system()
   return nothing
 end
 

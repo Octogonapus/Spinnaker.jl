@@ -16,7 +16,7 @@ mutable struct System
     spinSystemGetInstance(hsystem_ref)
     @assert hsystem_ref[] != C_NULL
     sys = new(hsystem_ref[])
-    finalizer(_release!, sys)
+    finalizer(_try_release!, sys)
     return sys
   end
 end
@@ -75,6 +75,20 @@ function _do_release!(sys::System)
     print_last_error_details()
     @show _CURRENT_CAM_SERIALS _DEFERRED_SYSTEM
     checkerror(err)
+    sys.handle = C_NULL
+  end
+  return nothing
+end
+
+function _try_release!(sys::System)
+  if sys.handle != C_NULL
+    err = ccall((:spinSystemReleaseInstance, libSpinnaker_C[]), spinError, (spinSystem,), sys)
+    if err == SPINNAKER_ERR_RESOURCE_IN_USE
+      # we need to let another finalizer run before this one because it's holding on to something
+      return nothing
+    elseif err != spinError(0)
+      throw(SpinError(err))
+    end
     sys.handle = C_NULL
   end
   return nothing

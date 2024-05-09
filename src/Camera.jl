@@ -325,7 +325,7 @@ end
 """
 function getimage(cam::Camera, ::Type{T}; normalize=true, release=true, timeout=-1) where T
 
-  himage_ref, width, height, id, timestamp, exposure = _pullim(cam, timeout=timeout)
+  himage_ref, width, height, id, timestamp, exposure, gain = _pullim(cam, timeout=timeout)
   imdat = Array{T,2}(undef, (width,height))
   camim = CameraImage(imdat, id, timestamp, exposure)
   _copyimage!(himage_ref[], width, height, camim, normalize)
@@ -355,8 +355,8 @@ end
 """
 function getimage!(cam::Camera, image::CameraImage{T,2}; normalize=true, release=true, timeout=-1) where T
 
-  himage_ref, width, height, id, timestamp, exposure = _pullim(cam, timeout=timeout)
-  camim = CameraImage(image.data, id, timestamp, exposure)
+  himage_ref, width, height, id, timestamp, exposure, gain = _pullim(cam, timeout=timeout)
+  camim = CameraImage(image.data, id, timestamp, exposure, gain)
   _copyimage!(himage_ref[], width, height, camim, normalize)
   if release
     spinImageRelease(himage_ref[])
@@ -385,15 +385,15 @@ function _pullim(cam::Camera;timeout=-1)
   id = Ref(Int64(0))
   timestamp = Ref(Int64(0))
   exposure = Ref(Float64(0))
+  gain = Ref(Float64(0))
   spinImageGetWidth(himage_ref[], width)
   spinImageGetHeight(himage_ref[], height)
   spinImageChunkDataGetIntValue(himage_ref[], "ChunkFrameID", id);
   spinImageChunkDataGetFloatValue(himage_ref[], "ChunkExposureTime", exposure);
+  spinImageChunkDataGetFloatValue(himage_ref[], "ChunkGain", gain);
   spinImageChunkDataGetIntValue(himage_ref[], "ChunkTimestamp", timestamp)
-  return himage_ref, Int(width[]), Int(height[]), id[], timestamp[], exposure[]
-
+  return himage_ref, Int(width[]), Int(height[]), id[], timestamp[], exposure[], gain[]
 end
-
 
 #
 # Image retrieval -> Array
@@ -414,7 +414,7 @@ end
 """
 function getimage!(cam::Camera, image::AbstractArray{T,2}; normalize=true, release=true, timeout=-1) where T
 
-  himage_ref, width, height, id, timestamp, exposure = _pullim(cam, timeout=timeout)
+  himage_ref, width, height, id, timestamp, exposure, gain = _pullim(cam, timeout=timeout)
   _copyimage!(himage_ref[], width, height, image, normalize)
   if release
     spinImageRelease(himage_ref[])

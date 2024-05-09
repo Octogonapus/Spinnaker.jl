@@ -28,6 +28,7 @@ struct CameraImage{T,N} <: AbstractArray{T,N}
     id::Int64
     timestamp::Int64
     exposure::Float64
+    gain::Float64
 end
 
 size(a::CameraImage) = size(a.data)
@@ -38,6 +39,7 @@ IndexStyle(::Type{<:CameraImage}) = IndexLinear()
 id(image::CameraImage) = image.id
 timestamp(image::CameraImage) = image.timestamp
 exposure(image::CameraImage) = image.exposure
+gain(image::CameraImage) = image.gain
 
 """
     CameraImage(::SpinImage, ::Type{T}, normalize=false)
@@ -49,7 +51,7 @@ function CameraImage(spinim::SpinImage, ::Type{T}; normalize=false) where T
     width, height = size(spinim)
     imdat = Array{T,2}(undef, width, height)
     _copyimage!(spinim.handle, width, height, imdat, normalize)
-    return CameraImage(imdat, id(spinim), timestamp(spinim), exposure(spinim))
+    return CameraImage(imdat, id(spinim), timestamp(spinim), exposure(spinim), gain(spinim))
 end
 
 function _copyimage!(himage_ref::spinImage,

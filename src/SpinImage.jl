@@ -155,6 +155,17 @@ function exposure(image::SpinImage)
 end
 
 """
+    gain(::SpinImage) -> Float64
+
+    Return gain from image chunk data.
+"""
+function gain(image::SpinImage)
+    hGain = Ref(Float64(0))
+    spinImageChunkDataGetFloatValue(image, "ChunkGain", hGain);
+    return hGain[]
+end
+
+"""
     save(fn::AbstractString, ::SpinImage, ::spinImageFileFormat)
 
     Save the input image to file `fn` in specified format.
